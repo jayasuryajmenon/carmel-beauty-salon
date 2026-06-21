@@ -1418,16 +1418,6 @@
       document.getElementById('lightbox').classList.remove('open');
     }
   }
-
-  function openLightbox(i, e) {
-    if(e) e.stopPropagation();
-    document.getElementById('lightboxImg').src = galleryImages[i].src;
-    document.getElementById('lightboxCaption').textContent = galleryImages[i].label;
-    document.getElementById('lightbox').classList.add('open');
-  }
-  function closeLightbox(e) {
-    if (e.target === document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open');
-  }
 </script>
 </body>
 </html>
