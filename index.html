@@ -398,6 +398,7 @@
       <div class="lightbox-inner">
         <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">✕</button>
         <img id="lightboxImg" src="" alt="">
+        <video id="lightboxVideo" controls playsinline></video>
         <div class="lightbox-caption" id="lightboxCaption"></div>
       </div>
     </div>
@@ -570,21 +571,25 @@
       if (!response.ok) throw new Error('Network response failure.');
       const data = await response.json();
 
-      const targetExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'];
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'];
+      const videoExtensions = ['mp4', 'mov', 'webm', 'm4v', 'ogg'];
+      const targetExtensions = [...imageExtensions, ...videoExtensions];
       
-      const imageFiles = data.filter(file => {
+      const mediaFiles = data.filter(file => {
         const ext = file.name.split('.').pop().toLowerCase();
         return file.type === 'file' && targetExtensions.includes(ext);
       });
 
-      galleryImages = imageFiles.map(file => {
+      galleryImages = mediaFiles.map(file => {
         let titleClean = file.name.split('.').slice(0, -1).join('.');
         titleClean = titleClean.replace(/[-_]/g, ' ');
+        const ext = file.name.split('.').pop().toLowerCase();
         
         return {
           // Uses @main since your repository uses the main branch setup
           src: `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@main/${GITHUB_FOLDER}/${file.name}`,
-          label: titleClean
+          label: titleClean,
+          type: videoExtensions.includes(ext) ? 'video' : 'image'
         };
       });
 
@@ -609,26 +614,50 @@
       return;
     }
 
-    gridDisplay.innerHTML = galleryImages.map((img, i) => `
+    gridDisplay.innerHTML = galleryImages.map((item, i) => `
       <div class="gallery-thumb" onclick="openLightbox(${i})">
-        <img src="${img.src}" alt="${img.label}" loading="lazy">
+        ${item.type === 'video'
+          ? `<video src="${item.src}" muted preload="metadata" playsinline></video>
+             <div class="thumb-video-badge"><i class="fa-solid fa-play"></i></div>`
+          : `<img src="${item.src}" alt="${item.label}" loading="lazy">`
+        }
         <div class="gallery-thumb-overlay">
           <button class="thumb-action"><i class="fa-solid fa-expand"></i></button>
         </div>
-        <div class="thumb-label-input" style="display:block !important; pointer-events:none;">${img.label}</div>
+        <div class="thumb-label-input" style="display:block !important; pointer-events:none;">${item.label}</div>
       </div>
     `).join('');
   }
 
   function openLightbox(i) {
-    document.getElementById('lightboxImg').src = galleryImages[i].src;
-    document.getElementById('lightboxCaption').textContent = galleryImages[i].label;
+    const item = galleryImages[i];
+    const imgEl = document.getElementById('lightboxImg');
+    const vidEl = document.getElementById('lightboxVideo');
+
+    if (item.type === 'video') {
+      imgEl.style.display = 'none';
+      imgEl.src = '';
+      vidEl.style.display = 'block';
+      vidEl.src = item.src;
+      vidEl.play().catch(() => {});
+    } else {
+      vidEl.pause();
+      vidEl.style.display = 'none';
+      vidEl.src = '';
+      imgEl.style.display = 'block';
+      imgEl.src = item.src;
+    }
+
+    document.getElementById('lightboxCaption').textContent = item.label;
     document.getElementById('lightbox').classList.add('open');
   }
 
   function closeLightbox(e) {
     if (!e || e.target === document.getElementById('lightbox') || e.target.closest('.lightbox-close')) {
       document.getElementById('lightbox').classList.remove('open');
+      const vidEl = document.getElementById('lightboxVideo');
+      vidEl.pause();
+      vidEl.src = '';
     }
   }
 
